@@ -9,6 +9,8 @@ Project structure
         - Sample from the PCA space and feed into decoder
         - Compare decoder output to the sample from the original dataset
         - Learn
+    - Data producer
+        - Nparray --> midi
     - Dynamic learning(?)
         - Dynamic network structure
         - Learning rate, batch size, etc.
