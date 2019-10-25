@@ -20,6 +20,7 @@ class MidiToNumpy():
 
     Limitations:
     - This class should only be used for one channel midi files.
+    - Time signature meta messages must be in the first track.
     - When a note with a pitch of over 96 comes in, it gets transposed
         an octave down.
     """
@@ -60,13 +61,13 @@ class MidiToNumpy():
 
         If no time signatures are found, raises a ValueError.
         """
-        time_signatures = [m for m in midifile.tracks[0]
-                           if m.type == "time_signature"]
+        abs_times = self.relative_to_absolute_times(midifile.tracks[0])
+        time_signatures = [m for m in abs_times if m.type == "time_signature"]
         if len(time_signatures) == 0:
             raise ValueError("ERROR: The given midifile", midifile.filename,
                              "does not have any time signatures")
 
-        time_signatures = self.relative_to_absolute_times(time_signatures)
+        return time_signatures
 
     def midi_file_to_numpy(self, midifile: mido.MidiFile) -> np.ndarray:
         """
