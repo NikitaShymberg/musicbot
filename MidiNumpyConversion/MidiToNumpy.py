@@ -27,8 +27,8 @@ class MidiToNumpy():
 
     def __init__(self, midi_path: str, numpy_path):
         """
-        Creates a MidiToNumpy instance to convert midi files from `midi_path`
-        and save them into `numpy_path`.
+        Creates a MidiToNumpy instance to convert midi files from the
+        `midi_path` directory and save them into `numpy_path` + filename.
         """
         self.note_messages = ["note_on", "note_off"]
         self.midi_path = midi_path
@@ -71,6 +71,7 @@ class MidiToNumpy():
 
     def midi_file_to_numpy(self, midifile: mido.MidiFile) -> np.ndarray:
         """
+        Used to convert a single midifile.
         Transforms the given `midifile` into nparray songs. Returns the songs.
         """
         messages = mido.merge_tracks(midifile.tracks)
@@ -113,6 +114,7 @@ class MidiToNumpy():
 
     def load_midis(self) -> None:
         """
+        Used for mass batch conversion of midi files.
         Loads the midis from `self.midi_path`, coverts them to a numpy format,
         and for each midi file saves a numpy file to the `self.numpy_path`
         directory.
