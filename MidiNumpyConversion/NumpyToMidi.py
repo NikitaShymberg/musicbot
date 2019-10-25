@@ -27,8 +27,12 @@ class NumpyToMidi():
         midi_song = mido.MidiFile()
         midi_song = self.add_conductor_track(midi_song)
         midi_track = mido.MidiTrack()
+        cur_time = 0
         for measure in song:
-            midi_track += self.measure_to_messages(measure)
+            new_track, new_time = self.measure_to_messages(measure, cur_time)
+            midi_track += new_track
+            cur_time = new_time
+        midi_song.tracks.append(midi_track)
 
         return midi_song
 
@@ -42,11 +46,16 @@ class NumpyToMidi():
         track.append(msg)
         return track
 
-    def measure_to_messages(self, measure: np.ndarray) -> mido.MidiTrack:
+    def measure_to_messages(self, measure: np.ndarray, start_time: int
+                            ) -> (mido.MidiTrack, int):
         """
-        TODO: implement
+        Takes a numpy `measure` and `start_time` (the time between the
+        last message in the midifile and the start of this measure)
+        and converts it to a miditrack.
+        Returns the converted miditrack and the time between the
+        last message and the end of the measure as a tuple.
         """
-        cur_time = 0
+        cur_time = start_time
         active_notes = []
         track = mido.MidiTrack()
         for note in measure:
@@ -69,7 +78,7 @@ class NumpyToMidi():
                     cur_time = 0
             active_notes[:] = [n for n in active_notes if n is not None]
 
-        return track
+        return track, cur_time
 
     def add_meta_messages(self, track: mido.MidiTrack) -> mido.MidiTrack:
         """
