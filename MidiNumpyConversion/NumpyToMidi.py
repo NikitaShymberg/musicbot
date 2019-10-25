@@ -28,10 +28,12 @@ class NumpyToMidi():
         midi_song = self.add_conductor_track(midi_song)
         midi_track = mido.MidiTrack()
         cur_time = 0
+        on_notes = []
         for measure in song:
-            new_track, new_time = self.measure_to_messages(measure, cur_time)
-            midi_track += new_track
-            cur_time = new_time
+            track, cur_time, on_notes = self.measure_to_messages(measure,
+                                                                 cur_time,
+                                                                 on_notes)
+            midi_track += track
         midi_song.tracks.append(midi_track)
 
         return midi_song
@@ -42,21 +44,21 @@ class NumpyToMidi():
         Appends the message of type `msg` for the given `note` at the given
         `time` to the `track`. Returns the modified track.
         """
-        msg = mido.Message(msg, note=note, time=time)
+        msg = mido.Message(msg, note=note, time=int(time))
         track.append(msg)
         return track
 
-    def measure_to_messages(self, measure: np.ndarray, start_time: int
-                            ) -> (mido.MidiTrack, int):
+    def measure_to_messages(self, measure: np.ndarray, start_time: int,
+                            active_notes: list) -> (mido.MidiTrack, int):
         """
         Takes a numpy `measure` and `start_time` (the time between the
         last message in the midifile and the start of this measure)
         and converts it to a miditrack.
-        Returns the converted miditrack and the time between the
-        last message and the end of the measure as a tuple.
+        Returns the converted miditrack, the time between the
+        last message and the end of the measure, and any notes that
+        haven't been turned off as a tuple.
         """
         cur_time = start_time
-        active_notes = []
         track = mido.MidiTrack()
         for note in measure:
             if (note == 0).all():
@@ -78,7 +80,7 @@ class NumpyToMidi():
                     cur_time = 0
             active_notes[:] = [n for n in active_notes if n is not None]
 
-        return track, cur_time
+        return track, cur_time, active_notes
 
     def add_meta_messages(self, track: mido.MidiTrack) -> mido.MidiTrack:
         """
@@ -95,12 +97,14 @@ class NumpyToMidi():
         - tempo
         - ppq(?)
         """
-        ...
+        return song
 
 
 if __name__ == "__main__":
     ntm = NumpyToMidi()
-    song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
-    song[0, 24, 10] = 1
-    song[0, 24, 11] = 1
-    ntm.numpy_to_midi(song)
+    # song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
+    # song[0, 24, 10] = 1
+    # song[0, 24, 11] = 1
+    song = np.load("data/temp/midi.mid.npy")
+    midi = ntm.numpy_to_midi(song[0])
+    midi.save("converted_back.mid")

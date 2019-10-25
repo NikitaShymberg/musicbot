@@ -99,7 +99,8 @@ class MidiToNumpy():
                     # Update current song
                     cur_measure %= NUM_MEASURES
                     songs.append(song)
-                    song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
+                    song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES),
+                                    dtype=bool)
                 time_of_prev_measure = time
 
             # Update note
@@ -108,7 +109,7 @@ class MidiToNumpy():
                     time, ppq, cur_time_signature.numerator)
                 while note.note >= 96:
                     note.note -= 12  # Transpose down an octave
-                song[cur_measure, tensor_time, note.note] = 1
+                song[cur_measure, tensor_time, note.note] = True
 
         return np.asarray(songs)
 
@@ -127,16 +128,17 @@ class MidiToNumpy():
                 continue
             except OSError as e:
                 print("ERROR opening", file, "Skipping and continuing...",
-                      file=sys.stderr)
+                      file=sys. stderr)
                 print(e, file=sys.stderr)
                 continue
 
             songs = self.midi_file_to_numpy(midifile)
 
             # Save every midifile into a separate file to save memory
-            np.save(self.numpy_path + file, np.asarray(songs))
+            songs = np.asarray(songs, dtype=bool)
+            np.save(self.numpy_path + file, songs)
 
 
 if __name__ == "__main__":
-    data_loader = MidiToNumpy("data/temp", "data/temp")
+    data_loader = MidiToNumpy("data/temp", "data/temp/")
     data_loader.load_midis()
