@@ -4,7 +4,7 @@ This file contains the NumpyToMidi class
 import mido
 import numpy as np
 
-from constants import PPQ, NUM_TIMES
+from constants import PPQ, NUM_TIMES, NUM_MEASURES, NUM_NOTES
 
 
 class NumpyToMidi():
@@ -17,7 +17,7 @@ class NumpyToMidi():
         """
         self.ppq = PPQ
         # The number of midi ticks per np song tick
-        self.pp_time = (1 / NUM_TIMES) * PPQ
+        self.pp_time = (1 / NUM_TIMES) * PPQ * 4
         self.note_duration = PPQ
 
     def numpy_to_midi(self, song: np.ndarray) -> mido.MidiFile:
@@ -32,20 +32,44 @@ class NumpyToMidi():
 
         return midi_song
 
+    def add_message(self, track: mido.MidiTrack, note: int, time: int,
+                    msg="note_on") -> mido.MidiTrack:
+        """
+        Appends the message of type `msg` for the given `note` at the given
+        `time` to the `track`. Returns the modified track.
+        """
+        msg = mido.Message(msg, note=note, time=time)
+        track.append(msg)
+        return track
+
     def measure_to_messages(self, measure: np.ndarray) -> mido.MidiTrack:
         """
         TODO: implement
         """
         cur_time = 0
         active_notes = []
+        track = mido.MidiTrack()
         for note in measure:
             if (note == 0).all():
                 cur_time += self.pp_time
-                # TODO: update active notes
+                for i in range(len(active_notes)):
+                    active_notes[i]["time"] += self.pp_time
             else:
-                midi_note = mido.Message("note_on")
+                pitches = np.where(note == 1)[0]
+                for pitch in pitches:
+                    track = self.add_message(track, pitch, cur_time)
+                    cur_time = 0
+                    active_notes.append({"pitch": pitch, "time": 0})
 
-            # TODO: turn off active notes that have been on for too long
+            for i, active_note in enumerate(active_notes):
+                if active_note["time"] >= self.note_duration:
+                    track = self.add_message(track, active_note["pitch"],
+                                             cur_time, msg="note_off")
+                    active_notes[i] = None
+                    cur_time = 0
+            active_notes[:] = [n for n in active_notes if n is not None]
+
+        return track
 
     def add_meta_messages(self, track: mido.MidiTrack) -> mido.MidiTrack:
         """
@@ -63,3 +87,11 @@ class NumpyToMidi():
         - ppq(?)
         """
         ...
+
+
+if __name__ == "__main__":
+    ntm = NumpyToMidi()
+    song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
+    song[0, 24, 10] = 1
+    song[0, 24, 11] = 1
+    ntm.numpy_to_midi(song)
