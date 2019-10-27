@@ -18,6 +18,11 @@ Project structure
         - This just might be a separate project
 
 TODO:
-1. Migrate the data loader and set it up as a nice class
-2. Test the data loader
-3. Decide on a deep learning framework (TF2.0/Pytorch)
+1. Decide on a deep learning framework - TF2.0
+og.mid
+np.npy
+bk1.mid --> ok
+bk1.npy --> ok
+bk2.mid --> slow
+bk2.npy --> slow
+Fix bk1.npy --> bk2.mid

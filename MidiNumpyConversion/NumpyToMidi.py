@@ -4,7 +4,7 @@ This file contains the NumpyToMidi class
 import mido
 import numpy as np
 
-from constants import PPQ, NUM_TIMES, NUM_MEASURES, NUM_NOTES
+from constants import PPQ, NUM_TIMES
 
 
 class NumpyToMidi():
@@ -26,7 +26,9 @@ class NumpyToMidi():
         """
         midi_song = mido.MidiFile()
         midi_song = self.add_conductor_track(midi_song)
+        midi_song.ticks_per_beat = 960
         midi_track = mido.MidiTrack()
+        midi_track = self.add_meta_messages(midi_track)
         cur_time = 0
         on_notes = []
         for measure in song:
@@ -61,16 +63,11 @@ class NumpyToMidi():
         cur_time = start_time
         track = mido.MidiTrack()
         for note in measure:
-            if (note == 0).all():
-                cur_time += self.pp_time
-                for i in range(len(active_notes)):
-                    active_notes[i]["time"] += self.pp_time
-            else:
-                pitches = np.where(note == 1)[0]
-                for pitch in pitches:
-                    track = self.add_message(track, pitch, cur_time)
-                    cur_time = 0
-                    active_notes.append({"pitch": pitch, "time": 0})
+            pitches = np.where(note == 1)[0]
+            for pitch in pitches:
+                track = self.add_message(track, pitch, cur_time)
+                cur_time = 0
+                active_notes.append({"pitch": pitch, "time": 0})
 
             for i, active_note in enumerate(active_notes):
                 if active_note["time"] >= self.note_duration:
@@ -80,23 +77,33 @@ class NumpyToMidi():
                     cur_time = 0
             active_notes[:] = [n for n in active_notes if n is not None]
 
+            cur_time += self.pp_time
+            for i in range(len(active_notes)):
+                active_notes[i]["time"] += self.pp_time
         return track, cur_time, active_notes
 
     def add_meta_messages(self, track: mido.MidiTrack) -> mido.MidiTrack:
         """
         Adds meta messages to the beginning of the track including:
         - track name
-        - TODO ???
+        - instrument name
         """
-        ...
+        meta_msgs = [
+            mido.MetaMessage("track_name", name="Main_Track", time=0),
+            mido.MetaMessage("instrument_name", name="Piano", time=0),
+                    ]
+        track = meta_msgs + track
+        return track
 
     def add_conductor_track(self, song: mido.MidiFile) -> mido.MidiFile:
         """
         Adds track 0 to the given song that adds info about the:
         - time signature
-        - tempo
-        - ppq(?)
         """
+        conductor = mido.MidiTrack()
+        conductor.append(mido.MetaMessage("time_signature",
+                                          numerator=4, denominator=4))
+        song.tracks = [conductor] + song.tracks
         return song
 
 
@@ -105,6 +112,6 @@ if __name__ == "__main__":
     # song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
     # song[0, 24, 10] = 1
     # song[0, 24, 11] = 1
-    song = np.load("data/temp/midi.mid.npy")
+    song = np.load("data/temp/bak1.mid.npy")
     midi = ntm.numpy_to_midi(song[0])
-    midi.save("converted_back.mid")
+    midi.save("data/temp/bak2.mid")

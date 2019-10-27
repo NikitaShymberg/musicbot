@@ -111,6 +111,10 @@ class MidiToNumpy():
                     note.note -= 12  # Transpose down an octave
                 song[cur_measure, tensor_time, note.note] = True
 
+        if not (song[-1] == 0).all():
+            # There are notes in the last measure
+            songs.append(song)
+
         return np.asarray(songs)
 
     def load_midis(self) -> None:
