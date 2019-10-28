@@ -23,4 +23,6 @@ class SongDisplay():
 
 if __name__ == "__main__":
     bk1 = np.load("data/temp/bak1.mid.npy")
+    bk2 = np.load("data/temp/bak2.mid.npy")
     SongDisplay.show(bk1[0])
+    SongDisplay.show(bk2[0])

@@ -84,24 +84,25 @@ class MidiToNumpy():
         cur_time_signature = time_signatures.pop(0)
         cur_measure = 0
         time_of_prev_measure = 0
+        measure_duration = cur_time_signature.numerator * ppq
         for note in messages:
             time += note.time
             # Update time signature
             if len(time_signatures) and time > time_signatures[0].time:
                 cur_time_signature = time_signatures.pop(0)
 
-            measure_duration = cur_time_signature.numerator * ppq
+            # Update current measure
             if time >= time_of_prev_measure + measure_duration:
-                # Update current measure
                 time_since_prev = time - time_of_prev_measure
                 cur_measure += time_since_prev // measure_duration
+                # Update current song
                 if cur_measure >= NUM_MEASURES:
-                    # Update current song
                     cur_measure %= NUM_MEASURES
                     songs.append(song)
                     song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES),
                                     dtype=bool)
-                time_of_prev_measure = time
+                time_of_prev_measure += measure_duration
+                measure_duration = cur_time_signature.numerator * ppq
 
             # Update note
             if note.type == "note_on" and note.velocity != 0:
@@ -111,8 +112,8 @@ class MidiToNumpy():
                     note.note -= 12  # Transpose down an octave
                 song[cur_measure, tensor_time, note.note] = True
 
-        if not (song[-1] == 0).all():
-            # There are notes in the last measure
+        # There are notes in the last measure
+        if (song[-1] == 1).any():
             songs.append(song)
 
         return np.asarray(songs)
