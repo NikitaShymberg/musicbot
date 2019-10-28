@@ -13,7 +13,7 @@ class NumpyToMidi():
     """
     def __init__(self):
         """
-        TODO: implement
+        Initializes the NumpyToMidi class
         """
         self.ppq = PPQ
         # The number of midi ticks per np song tick
@@ -22,7 +22,10 @@ class NumpyToMidi():
 
     def numpy_to_midi(self, song: np.ndarray) -> mido.MidiFile:
         """
-        TODO: implement
+        Converts the given `song` to a mido MidiFile.
+
+        All notes last for PPQ
+        PPQ is set in the constants.py file
         """
         midi_song = mido.MidiFile()
         midi_song = self.add_conductor_track(midi_song)
@@ -51,7 +54,7 @@ class NumpyToMidi():
         return track
 
     def measure_to_messages(self, measure: np.ndarray, start_time: int,
-                            active_notes: list) -> (mido.MidiTrack, int):
+                            active_notes: list) -> (mido.MidiTrack, int, list):
         """
         Takes a numpy `measure` and `start_time` (the time between the
         last message in the midifile and the start of this measure)
