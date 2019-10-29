@@ -115,6 +115,6 @@ if __name__ == "__main__":
     # song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
     # song[0, 24, 10] = 1
     # song[0, 24, 11] = 1
-    song = np.load("data/temp/bak1.mid.npy")
+    song = np.unpackbits(np.load("data/temp/bak1.mid.npy"), axis=-1)
     midi = ntm.numpy_to_midi(song[0])
     midi.save("data/temp/bak2.mid")

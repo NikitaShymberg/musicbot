@@ -116,7 +116,7 @@ class MidiToNumpy():
         if (song[-1] == 1).any():
             songs.append(song)
 
-        return np.asarray(songs)
+        return np.asarray(songs, dtype=bool)
 
     def load_midis(self) -> None:
         """
@@ -140,10 +140,10 @@ class MidiToNumpy():
             songs = self.midi_file_to_numpy(midifile)
 
             # Save every midifile into a separate file to save memory
-            songs = np.asarray(songs, dtype=bool)
-            np.save(self.numpy_path + file, songs)
+            # packbits to greatly reduce file size
+            np.save(self.numpy_path + file, np.packbits(songs, axis=-1))
 
 
 if __name__ == "__main__":
-    data_loader = MidiToNumpy("data/temp", "data/temp/")
+    data_loader = MidiToNumpy("data/midi", "data/npy/")
     data_loader.load_midis()
