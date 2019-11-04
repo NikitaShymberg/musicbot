@@ -5,9 +5,10 @@ import numpy as np
 import os
 from tqdm import tqdm
 from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
+import tensorflow as tf
 
-from constants import NUM_MEASURES, NUM_NOTES, NUM_TIMES, PCA_DIMENSIONS
+from constants import NUM_MEASURES, NUM_NOTES, NUM_TIMES,\
+    PCA_DIMENSIONS, BATCH_SIZE
 
 
 class PrepData():
@@ -28,7 +29,9 @@ class PrepData():
 
     def load_data(self):
         """
-        Loads the data into `self.songs` and the principal components into `self.pc`.
+        Loads the data into `self.train_songs` and `self.test_songs`
+        and the principal components into `self.train_pc` and `self.train_pc`.
+        TODO: refactor
         """
         song_num = 0
         for file in tqdm(os.listdir(self.data_path)):
@@ -42,14 +45,36 @@ class PrepData():
                     break
                 self.songs[song_num] = cur_song
                 song_num += 1
-        decomposer = PCA(n_components=PCA_DIMENSIONS).fit(self.songs.reshape((self.num_songs, -1)))
+        self.songs = self.songs.reshape((self.num_songs, -1))
+        decomposer = PCA(n_components=PCA_DIMENSIONS).fit(self.songs)
+        self.pc = decomposer.transform(self.songs)
         # plt.plot(np.cumsum(decomposer.explained_variance_ratio_))
         # plt.plot(decomposer.explained_variance_ratio_)
         # plt.show()
-        self.pc = decomposer.transform(self.songs.reshape((self.num_songs, -1)))
+
+        # Split into random train test subsets
+        indices = np.arange(self.num_songs)
+        np.random.shuffle(indices)
+        num_train = int(self.num_songs * 0.8)
+        train_indices = indices[:num_train]
+        test_indices = indices[num_train:]
+        # self.train_songs = self.songs[train_indices]
+        # self.test_songs = self.songs[test_indices]
+        # self.train_pc = self.pc[train_indices]
+        # self.test_pc = self.pc[test_indices]
+        self.train_ds = tf.data.Dataset.from_tensor_slices(
+            (self.pc[train_indices], self.songs[train_indices])
+        ).shuffle(num_train).batch(BATCH_SIZE)
+        self.test_ds = tf.data.Dataset.from_tensor_slices(
+            (self.pc[test_indices], self.songs[test_indices])
+        ).shuffle(self.num_songs - num_train).batch(BATCH_SIZE)
+        # Save memory
+        del self.songs
+        del self.pc
 
 
 if __name__ == "__main__":
-    d = PrepData("data/npy/", 1000)
+    d = PrepData("data/npy/", 100)
     # d = PrepData("data/npy/", 22229)
     d.load_data()
+    print("Done!")
