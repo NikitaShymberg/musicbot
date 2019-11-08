@@ -19,7 +19,7 @@ class MidiToNumpy():
     truncated.
 
     Limitations:
-    - This class should only be used for one channel midi files.
+    - This class should only be used for one instrument midi files.
     - Time signature meta messages must be in the first track.
     - When a note with a pitch of over 96 comes in, it gets transposed
         an octave down.

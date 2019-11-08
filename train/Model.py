@@ -15,10 +15,11 @@ class SongGenerator(tf.keras.Model):
         TODO: mess around with this.
         """
         super(SongGenerator, self).__init__()
-        self.d1 = tf.keras.layers.Dense(PCA_DIMENSIONS * 2, activation='relu')
-        self.d2 = tf.keras.layers.Dense(PCA_DIMENSIONS * 4, activation='relu')
-        self.d3 = tf.keras.layers.Dense(NUM_MEASURES * NUM_NOTES * NUM_TIMES,
-                                        activation='relu')
+        self.d1 = tf.keras.layers.Dense(PCA_DIMENSIONS * 100, activation='relu')
+        self.d2 = tf.keras.layers.Dense(PCA_DIMENSIONS * 100, activation='relu')
+        self.d3 = tf.keras.layers.Dense(PCA_DIMENSIONS * 100, activation='relu')
+        self.d4 = tf.keras.layers.Dense(NUM_MEASURES * NUM_NOTES * NUM_TIMES,
+                                        activation='sigmoid')
 
     def call(self, x):
         """
@@ -27,4 +28,5 @@ class SongGenerator(tf.keras.Model):
         x = self.d1(x)
         x = self.d2(x)
         x = self.d3(x)
+        x = self.d4(x)
         return x

@@ -18,11 +18,7 @@ Project structure
         - This just might be a separate project
 
 TODO:
-1. Decide on a deep learning framework - TF2.0
-og.mid
-np.npy
-bk1.mid --> ok
-bk1.npy --> ok
-bk2.mid --> slow
-bk2.npy --> slow
-Fix bk1.npy --> bk2.mid
+1. Logs
+2. Save times
+3. Make sure that you can get 0 loss on tiny songs
+4. Tests zzz
