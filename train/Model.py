@@ -2,7 +2,7 @@
 This class contains the music generation model
 """
 import tensorflow as tf
-from constants import PCA_DIMENSIONS, NUM_MEASURES, NUM_NOTES, NUM_TIMES
+from constants import FLAT_SIZE
 
 
 class SongGenerator(tf.keras.Model):
@@ -15,15 +15,14 @@ class SongGenerator(tf.keras.Model):
         TODO: mess around with this.
         """
         super(SongGenerator, self).__init__()
-        self.d1 = tf.keras.layers.Dense(PCA_DIMENSIONS * 100, activation='relu')
-        self.d2 = tf.keras.layers.Dense(PCA_DIMENSIONS * 100, activation='relu')
-        self.d3 = tf.keras.layers.Dense(PCA_DIMENSIONS * 100, activation='relu')
-        self.d4 = tf.keras.layers.Dense(NUM_MEASURES * NUM_NOTES * NUM_TIMES,
-                                        activation='sigmoid')
+        self.d1 = tf.keras.layers.Dense(FLAT_SIZE // 10000, activation='relu')
+        self.d2 = tf.keras.layers.Dense(FLAT_SIZE // 10000, activation='relu')
+        self.d3 = tf.keras.layers.Dense(FLAT_SIZE // 10000, activation='relu')
+        self.d4 = tf.keras.layers.Dense(FLAT_SIZE, activation='sigmoid')
 
     def call(self, x):
         """
-        Runs the model on input `x`.
+        Runs input `x` through the model and returns the output.
         """
         x = self.d1(x)
         x = self.d2(x)

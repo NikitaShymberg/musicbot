@@ -15,6 +15,7 @@ class PrepData():
     """
     Loads all .npy files from the specified path and stores them
     as well as their principal components.
+    This is the class that contains the train and test tensorflow datasets.
     """
     def __init__(self, data_path, num_songs):
         """
@@ -27,10 +28,41 @@ class PrepData():
         self.songs = np.zeros((num_songs, NUM_MEASURES, NUM_TIMES, NUM_NOTES),
                               dtype=np.int8)
 
-    def load_data(self):
+    @staticmethod
+    def to_song(song: np.ndarray) -> np.ndarray:
         """
-        Loads the data into `self.train_songs` and `self.test_songs`
-        and the principal components into `self.train_pc` and `self.train_pc`.
+        Used to convert a flattened float song to a song shape and data type.
+        Returns the song with shape (NUM_MEASURES, NUM_TIMES, NUM_NOTES)
+        and int8 dtype.
+        """
+        return song.reshape(
+            (NUM_MEASURES, NUM_TIMES, NUM_NOTES)
+        ).astype(np.int8)
+
+    def create_datasets(self, pcs: np.ndarray, songs: np.ndarray) -> None:
+        """
+        Creates and stores the `self.train_ds` and `self.test_ds` datasets
+        taking a randomly selected 20% for the test set.
+        It is important that the indices of each pc match up to the song they
+        were derived from.
+        """
+        indices = np.arange(self.num_songs)
+        np.random.shuffle(indices)
+        num_train = int(self.num_songs * 0.8)
+        train_indices = indices[:num_train]
+        test_indices = indices[num_train:]
+        self.train_ds = tf.data.Dataset.from_tensor_slices(
+            (pcs[train_indices], songs[train_indices])
+        ).shuffle(num_train).batch(BATCH_SIZE)
+        self.test_ds = tf.data.Dataset.from_tensor_slices(
+            (pcs[test_indices], songs[test_indices])
+        ).shuffle(self.num_songs - num_train).batch(BATCH_SIZE)
+
+    def load_data(self, show_variance=False):
+        """
+        Loads the data into `self.train_ds` and `self.test_ds`. Each of those
+        datasets will contain tuples in the form (x, y) where x is the
+        principle component of the song y.
         TODO: refactor
         """
         song_num = 0
@@ -49,27 +81,16 @@ class PrepData():
         decomposer = TruncatedSVD(n_components=PCA_DIMENSIONS).fit(self.songs)
         pc = decomposer.transform(self.songs)
 
-        # import matplotlib.pyplot as plt
-        # plt.plot(np.cumsum(decomposer.explained_variance_ratio_))
-        # plt.show()
+        if show_variance:
+            import matplotlib.pyplot as plt
+            plt.plot(np.cumsum(decomposer.explained_variance_ratio_))
+            plt.show()
 
-        # Split into random train test subsets
-        indices = np.arange(self.num_songs)
-        np.random.shuffle(indices)
-        num_train = int(self.num_songs * 0.8)
-        train_indices = indices[:num_train]
-        test_indices = indices[num_train:]
-        self.train_ds = tf.data.Dataset.from_tensor_slices(
-            (pc[train_indices], self.songs[train_indices])
-        ).shuffle(num_train).batch(BATCH_SIZE)
-        self.test_ds = tf.data.Dataset.from_tensor_slices(
-            (pc[test_indices], self.songs[test_indices])
-        ).shuffle(self.num_songs - num_train).batch(BATCH_SIZE)
+        self.create_datasets(pc, self.songs)
         del self.songs
 
 
 if __name__ == "__main__":
     d = PrepData("data/npy/", 2294)
-    # d = PrepData("data/npy/", 22229)
     d.load_data()
     print("Done!")

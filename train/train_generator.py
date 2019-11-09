@@ -35,8 +35,8 @@ def train_step(pc: tf.Tensor, song: tf.Tensor):
     gradients = tape.gradient(loss, generator.trainable_variables)
     optimizer.apply_gradients(zip(gradients, generator.trainable_variables))
     train_loss(loss)
-    train_recall(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))  # TODO: wait is casting going to work with the new activation funcitoni business
-    train_precision(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))  # TODO: wait is casting going to work with the new activation funcitoni business
+    train_recall(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
+    train_precision(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
 
 
 @tf.function
@@ -47,8 +47,8 @@ def test_step(pc: tf.Tensor, song: tf.Tensor):
     generated_song = generator(pc)
     t_loss = loss_obj(song, generated_song)
     test_loss(t_loss)
-    test_recall(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))  # TODO: wait is casting going to work with the new activation funcitoni business
-    test_precision(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))  # TODO: wait is casting going to work with the new activation funcitoni business
+    test_recall(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
+    test_precision(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
     return generated_song
 
 

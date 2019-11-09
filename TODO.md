@@ -20,5 +20,8 @@ Project structure
 TODO:
 1. Logs
 2. Save times
-3. Make sure that you can get 0 loss on tiny songs
+3. Mess around with model structure
 4. Tests zzz
+5. Training hyperparameters and whatever
+6. Something to record all testing of model things
+7. Converting to ints?
