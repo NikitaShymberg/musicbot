@@ -46,11 +46,14 @@ class PrepData():
         It is important that the indices of each pc match up to the song they
         were derived from.
         """
+        # Shuffle
         indices = np.arange(self.num_songs)
         np.random.shuffle(indices)
         num_train = int(self.num_songs * 0.8)
         train_indices = indices[:num_train]
         test_indices = indices[num_train:]
+        # Create datasets, I think the additional call to shuffle
+        # will shuffle the dataset whenever we finish iterating throuygh it
         self.train_ds = tf.data.Dataset.from_tensor_slices(
             (pcs[train_indices], songs[train_indices])
         ).shuffle(num_train).batch(BATCH_SIZE)
@@ -58,14 +61,17 @@ class PrepData():
             (pcs[test_indices], songs[test_indices])
         ).shuffle(self.num_songs - num_train).batch(BATCH_SIZE)
 
-    def load_data(self, show_variance=False):
+    def load_data(self, show_variance=False) -> None:
         """
         Loads the data into `self.train_ds` and `self.test_ds`. Each of those
         datasets will contain tuples in the form (x, y) where x is the
         principle component of the song y.
-        TODO: refactor
+        If `show_variance` is True, displays a plot showing the cumulative sum
+        of the variance ratios of each principle component.
         """
+        # Load songs
         song_num = 0
+        print("Loading data...")
         for file in tqdm(os.listdir(self.data_path)):
             songs = np.unpackbits(
                     np.load(
@@ -78,6 +84,9 @@ class PrepData():
                 self.songs[song_num] = cur_song
                 song_num += 1
         self.songs = self.songs.reshape((self.num_songs, -1))
+
+        # Get principle components
+        print("Retrieving principle components...")
         decomposer = TruncatedSVD(n_components=PCA_DIMENSIONS).fit(self.songs)
         pc = decomposer.transform(self.songs)
 

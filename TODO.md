@@ -18,10 +18,9 @@ Project structure
         - This just might be a separate project
 
 TODO:
-1. Logs
 2. Save times
 3. Mess around with model structure
-4. Tests zzz
+4. More tests
 5. Training hyperparameters and whatever
 6. Something to record all testing of model things
 7. Converting to ints?

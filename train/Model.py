@@ -23,6 +23,7 @@ class SongGenerator(tf.keras.Model):
     def call(self, x):
         """
         Runs input `x` through the model and returns the output.
+        TODO: make it just run thgrouygh all the layers even if I change them
         """
         x = self.d1(x)
         x = self.d2(x)
