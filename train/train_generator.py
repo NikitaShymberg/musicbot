@@ -73,11 +73,11 @@ def train_logs(epoch):
     Records all tensorboard logs for training metrics at the given `epoch`.
     """
     with train_writer.as_default():
-        tf.summary.scalar("training_loss", train_loss.result(), step=epoch)
+        tf.summary.scalar("loss", train_loss.result(), step=epoch)
         print("Training loss:", train_loss.result().numpy())
-        tf.summary.scalar("training_recall - low means many missed notes",
+        tf.summary.scalar("recall - low means many missed notes",
                           train_recall.result(), step=epoch)
-        tf.summary.scalar("training_precision - low means many extra notes",
+        tf.summary.scalar("precision - low means many extra notes",
                           train_precision.result(), step=epoch)
     train_loss.reset_states()
     train_recall.reset_states()
@@ -89,10 +89,10 @@ def test_logs(epoch):
     Records all tensorboard logs for testing metrics at the given `epoch`.
     """
     with test_writer.as_default():
-        tf.summary.scalar("testing_loss", test_loss.result(), step=epoch)
-        tf.summary.scalar("testing_recall - low means many missed notes",
+        tf.summary.scalar("loss", test_loss.result(), step=epoch)
+        tf.summary.scalar("recall - low means many missed notes",
                           test_recall.result(), step=epoch)
-        tf.summary.scalar("testing_precision - low means many extra notes",
+        tf.summary.scalar("precision - low means many extra notes",
                           test_precision.result(), step=epoch)
     test_loss.reset_states()
     test_recall.reset_states()
