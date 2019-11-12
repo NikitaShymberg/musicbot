@@ -1,15 +1,17 @@
 """
 This is the main script that trains the song generator network.
 """
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 from tqdm import tqdm
+from datetime import datetime
 
 from train.Model import SongGenerator
 from train.PrepData import PrepData
 from constants import EPOCHS
-from MidiNumpyConversion.NumpyToMidi import NumpyToMidi
 from Visualization.SongDisplay import SongDisplay
+
+cur_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 
 # Load data
 data_manager = PrepData("data/npy/", 2294)
@@ -30,8 +32,8 @@ train_precision = tf.keras.metrics.Precision(name="train_precision")
 test_precision = tf.keras.metrics.Precision(name="test_precision")
 
 # Tensorboard
-train_writer = tf.summary.create_file_writer("./logs/training")
-test_writer = tf.summary.create_file_writer("./logs/testing")
+train_writer = tf.summary.create_file_writer("logs/" + cur_time + "/training")
+test_writer = tf.summary.create_file_writer("logs/" + cur_time + "/testing")
 
 
 @tf.function
@@ -68,7 +70,7 @@ def test_step(pc: tf.Tensor, song: tf.Tensor):
     return generated_song
 
 
-def train_logs(epoch):
+def train_logs(epoch: int):
     """
     Records all tensorboard logs for training metrics at the given `epoch`.
     """
@@ -84,7 +86,7 @@ def train_logs(epoch):
     train_precision.reset_states()
 
 
-def test_logs(epoch):
+def test_logs(epoch: int):
     """
     Records all tensorboard logs for testing metrics at the given `epoch`.
     """
@@ -99,20 +101,29 @@ def test_logs(epoch):
     test_precision.reset_states()
 
 
+def save_songs(epoch: int, pc: tf.Tensor, song: tf.Tensor):
+    """
+    Saves the `song` and principle components used to generate it.
+    """
+    np.save("output/" + cur_time + "/song_" + str(epoch + 1),
+            np.packbits(song, axis=-1))
+    np.save("output/" + cur_time + "/pc_" + str(epoch + 1),
+            np.packbits(pc, axis=-1))
+
+
 print("Starting training...")
 for epoch in tqdm(range(EPOCHS)):
     for pc, song in data_manager.train_ds:
         train_step(pc, song)
     train_logs(epoch + 1)
 
-    displayed = False
-    for pc, song in data_manager.test_ds:
+    for i, pc, song in enumerate(data_manager.test_ds):
         generated_song = test_step(pc, song).numpy()
-        # np.save("output/test_epoch_" + str(epoch + 1), generated_song)
-        if epoch == EPOCHS - 1 and not displayed:
-            displayed = True
-            SongDisplay.show(PrepData.to_song(song[0].numpy()))
-            SongDisplay.show(PrepData.to_song(generated_song[0]))
+        if i == 0:
+            save_songs(epoch, pc, song)
+            if epoch == EPOCHS - 1:
+                SongDisplay.show(PrepData.to_song(song[0].numpy()))
+                SongDisplay.show(PrepData.to_song(generated_song[0]))
     test_logs(epoch + 1)
 
 

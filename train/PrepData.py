@@ -8,7 +8,7 @@ from sklearn.decomposition import TruncatedSVD
 import tensorflow as tf
 
 from constants import NUM_MEASURES, NUM_NOTES, NUM_TIMES,\
-    PCA_DIMENSIONS, BATCH_SIZE
+    PCA_DIMENSIONS, BATCH_SIZE, CONF_THRESH
 
 
 class PrepData():
@@ -33,8 +33,11 @@ class PrepData():
         """
         Used to convert a flattened float song to a song shape and data type.
         Returns the song with shape (NUM_MEASURES, NUM_TIMES, NUM_NOTES)
-        and int8 dtype.
+        and int8 dtype. Notes whose confidence level is above CONF_THRESH
+        are considered to exist, others are discarded.
         """
+        song[song >= CONF_THRESH] = 1
+        song[song < CONF_THRESH] = 0
         return song.reshape(
             (NUM_MEASURES, NUM_TIMES, NUM_NOTES)
         ).astype(np.int8)

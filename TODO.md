@@ -23,4 +23,4 @@ TODO:
 4. More tests
 5. Training hyperparameters and whatever
 6. Something to record all testing of model things
-7. Converting to ints?
+7. Detemine conf_thresh
