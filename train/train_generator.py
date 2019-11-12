@@ -5,17 +5,18 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from datetime import datetime
+import os
 
 from train.Model import SongGenerator
 from train.PrepData import PrepData
-from constants import EPOCHS
+from constants import EPOCHS, CONF_THRESH
 from Visualization.SongDisplay import SongDisplay
 
-cur_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+cur_time = datetime.now().strftime("%Y%m%d-%H:%M:%S")
 
 # Load data
-data_manager = PrepData("data/npy/", 2294)
-# data_manager = PrepData("data/npy/", 2)
+# data_manager = PrepData("data/npy/", 2294)
+data_manager = PrepData("data/npy/", 2)
 data_manager.load_data()
 
 # Set up all training variables in a global scope
@@ -36,6 +37,16 @@ train_writer = tf.summary.create_file_writer("logs/" + cur_time + "/training")
 test_writer = tf.summary.create_file_writer("logs/" + cur_time + "/testing")
 
 
+def song_to_bool(song: tf.Tensor):
+    """
+    Converts a song tensor to a bool using the CONF_THRESH in constants.
+    Used to record accurate precision and recall.
+    """
+    return tf.greater(
+        tf.cast(song, tf.float32),
+        CONF_THRESH)
+
+
 @tf.function
 def train_step(pc: tf.Tensor, song: tf.Tensor):
     """
@@ -49,8 +60,8 @@ def train_step(pc: tf.Tensor, song: tf.Tensor):
     optimizer.apply_gradients(zip(gradients, generator.trainable_variables))
     # Metrics
     train_loss(loss)
-    train_recall(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
-    train_precision(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
+    train_recall(song_to_bool(song), song_to_bool(generated_song))
+    train_precision(song_to_bool(song), song_to_bool(generated_song))
 
 
 @tf.function
@@ -64,8 +75,8 @@ def test_step(pc: tf.Tensor, song: tf.Tensor):
     t_loss = loss_obj(song, generated_song)
     # Metrics
     test_loss(t_loss)
-    test_recall(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
-    test_precision(tf.cast(song, tf.bool), tf.cast(generated_song, tf.bool))
+    test_recall(song_to_bool(song), song_to_bool(generated_song))
+    test_precision(song_to_bool(song), song_to_bool(generated_song))
 
     return generated_song
 
@@ -76,7 +87,6 @@ def train_logs(epoch: int):
     """
     with train_writer.as_default():
         tf.summary.scalar("loss", train_loss.result(), step=epoch)
-        print("Training loss:", train_loss.result().numpy())
         tf.summary.scalar("recall - low means many missed notes",
                           train_recall.result(), step=epoch)
         tf.summary.scalar("precision - low means many extra notes",
@@ -105,10 +115,12 @@ def save_songs(epoch: int, pc: tf.Tensor, song: tf.Tensor):
     """
     Saves the `song` and principle components used to generate it.
     """
+    save_dir = "output/" + cur_time
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
     np.save("output/" + cur_time + "/song_" + str(epoch + 1),
             np.packbits(song, axis=-1))
-    np.save("output/" + cur_time + "/pc_" + str(epoch + 1),
-            np.packbits(pc, axis=-1))
+    np.save("output/" + cur_time + "/pc_" + str(epoch + 1), pc)
 
 
 print("Starting training...")
@@ -117,10 +129,11 @@ for epoch in tqdm(range(EPOCHS)):
         train_step(pc, song)
     train_logs(epoch + 1)
 
-    for i, pc, song in enumerate(data_manager.test_ds):
+    for i, (pc, song) in enumerate(data_manager.test_ds):
         generated_song = test_step(pc, song).numpy()
         if i == 0:
-            save_songs(epoch, pc[0], generated_song[0])
+            save_songs(epoch, pc[0].numpy(),
+                       PrepData.to_song(generated_song[0]))
             if epoch == EPOCHS - 1:
                 SongDisplay.show(PrepData.to_song(song[0].numpy()))
                 SongDisplay.show(PrepData.to_song(generated_song[0]))
