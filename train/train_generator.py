@@ -120,7 +120,7 @@ for epoch in tqdm(range(EPOCHS)):
     for i, pc, song in enumerate(data_manager.test_ds):
         generated_song = test_step(pc, song).numpy()
         if i == 0:
-            save_songs(epoch, pc, song)
+            save_songs(epoch, pc[0], generated_song[0])
             if epoch == EPOCHS - 1:
                 SongDisplay.show(PrepData.to_song(song[0].numpy()))
                 SongDisplay.show(PrepData.to_song(generated_song[0]))
