@@ -15,9 +15,9 @@ PCA_DIMENSIONS = 1000  # Captures ~ 74% variance
 # PCA_DIMENSIONS = 1150  # Captures ~ 80% variance
 # PCA_DIMENSIONS = 1600  # Captures ~ 90% variance
 # PCA_DIMENSIONS = 2000  # Captures ~ 98% variance
-EPOCHS = 100
+EPOCHS = 10000
 BATCH_SIZE = 16
 FLAT_SIZE = NUM_MEASURES * NUM_NOTES * NUM_TIMES
-CONF_THRESH = 0.5  # TODO: determine
+CONF_THRESH = 0.2  # TODO: determine
 LOG_POINTS = [0, EPOCHS-1]  # The epochs at which generated songs are saved
 LOG_POINTS += [x for x in range(EPOCHS) if x % (EPOCHS // 100) == 0]

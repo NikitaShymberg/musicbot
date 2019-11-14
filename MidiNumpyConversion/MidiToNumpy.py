@@ -145,5 +145,5 @@ class MidiToNumpy():
 
 
 if __name__ == "__main__":
-    data_loader = MidiToNumpy("data/midi", "data/npy/")
+    data_loader = MidiToNumpy("/home/nikita/Downloads/130000_Pop_Rock_Classical_Videogame_EDM_MIDI_Archive[6_19_15]/Metal_Rock_wolverine-metalmidi.wen.ru_MIDIRip/AmonAmarth", "data/temp/")
     data_loader.load_midis()

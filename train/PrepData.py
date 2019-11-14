@@ -36,6 +36,7 @@ class PrepData():
         and int8 dtype. Notes whose confidence level is above CONF_THRESH
         are considered to exist, others are discarded.
         """
+        song = np.copy(song)
         song[song >= CONF_THRESH] = 1
         song[song < CONF_THRESH] = 0
         return song.reshape(

@@ -18,6 +18,8 @@ Project structure
         - This just might be a separate project
 
 TODO:
+1. The number of notes keras thbing is still wonky
+2. Random(?) note volume/duration/tone/etc.
 3. Mess around with model structure
 4. More tests
 5. Training hyperparameters and whatever

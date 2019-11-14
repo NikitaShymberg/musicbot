@@ -115,9 +115,19 @@ if __name__ == "__main__":
     # song = np.zeros((NUM_MEASURES, NUM_TIMES, NUM_NOTES))
     # song[0, 24, 10] = 1
     # song[0, 24, 11] = 1
-    song = np.load("output/test_epoch_2000.npy").reshape((16, 96, 96)).astype('int8')
-    midi = ntm.numpy_to_midi(song)
+    # song = np.load("output/test_epoch_2000.npy").reshape((16, 96, 96)).astype('int8')
+    # midi = ntm.numpy_to_midi(song)
     # song = np.unpackbits(np.load("output/test_epoch_2000.npy"),
     #                      axis=-1)
     # midi = ntm.numpy_to_midi(song[0])
+    # midi.save("data/temp/bak.mid")
+
+    from Visualization.SongDisplay import SongDisplay
+    from train.PrepData import PrepData
+    s = np.unpackbits(np.load("data/temp/Amon Amarth - Beheading Of A King.mid.npy"), axis=-1)
+    # s = s.reshape((16, 96, 96))
+    SongDisplay.show(s[0])
+    SongDisplay.show(PrepData.to_song(s[0]))
+    s1 = PrepData.to_song(s[0])
+    midi = ntm.numpy_to_midi(s1)
     midi.save("data/temp/bak.mid")

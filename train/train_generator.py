@@ -22,7 +22,7 @@ data_manager.load_data()
 # Set up all training variables in a global scope
 generator = SongGenerator()
 loss_obj = tf.keras.losses.BinaryCrossentropy()
-optimizer = tf.keras.optimizers.Adam(learning_rate=1e-2)
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
 
 # Metrics
 # NOTE: why do I need separate ones for train/test?
@@ -32,22 +32,23 @@ train_recall = tf.keras.metrics.Recall(name="train_recall")
 test_recall = tf.keras.metrics.Recall(name="test_recall")
 train_precision = tf.keras.metrics.Precision(name="train_precision")
 test_precision = tf.keras.metrics.Precision(name="test_precision")
-train_num_notes = tf.keras.metrics.Sum(name="train_num_notes")
-test_num_notes = tf.keras.metrics.Sum(name="test_num_notes")
+train_num_notes = tf.keras.metrics.Mean(name="train_num_notes")
+test_num_notes = tf.keras.metrics.Mean(name="test_num_notes")
 
 # Tensorboard
 train_writer = tf.summary.create_file_writer("logs/" + cur_time + "/training")
 test_writer = tf.summary.create_file_writer("logs/" + cur_time + "/testing")
 
 
-def song_to_bool(song: tf.Tensor):
+def song_to_bin(song: tf.Tensor):
     """
-    Converts a song tensor to a bool using the CONF_THRESH in constants.
+    Converts a song tensor to dtype uint8 with only 1s and 0s
+    using the CONF_THRESH in constants.
     Used to record accurate precision and recall.
     """
-    return tf.greater(
-        tf.cast(song, tf.float32),
-        CONF_THRESH)
+    return tf.cast(
+        tf.greater(tf.cast(song, tf.float32), CONF_THRESH),
+        tf.uint8)
 
 
 @tf.function
@@ -63,9 +64,9 @@ def train_step(pc: tf.Tensor, song: tf.Tensor):
     optimizer.apply_gradients(zip(gradients, generator.trainable_variables))
     # Metrics
     train_loss(loss)
-    train_recall(song_to_bool(song), song_to_bool(generated_song))
-    train_precision(song_to_bool(song), song_to_bool(generated_song))
-    train_num_notes(song_to_bool(generated_song[0]))
+    train_recall(song_to_bin(song), song_to_bin(generated_song))
+    train_precision(song_to_bin(song), song_to_bin(generated_song))
+    train_num_notes(tf.reduce_sum(song_to_bin(generated_song)))
 
 
 @tf.function
@@ -79,9 +80,9 @@ def test_step(pc: tf.Tensor, song: tf.Tensor):
     t_loss = loss_obj(song, generated_song)
     # Metrics
     test_loss(t_loss)
-    test_recall(song_to_bool(song), song_to_bool(generated_song))
-    test_precision(song_to_bool(song), song_to_bool(generated_song))
-    test_num_notes(song_to_bool(generated_song[0]))
+    test_recall(song_to_bin(song), song_to_bin(generated_song))
+    test_precision(song_to_bin(song), song_to_bin(generated_song))
+    test_num_notes(tf.reduce_sum(song_to_bin(generated_song)))
 
     return generated_song
 
@@ -130,8 +131,9 @@ def save_songs(epoch: int, pc: np.ndarray, song: np.ndarray):
     save_dir = "output/" + cur_time
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    np.save("output/" + cur_time + "/song_" + str(epoch + 1),
-            np.packbits(song, axis=-1))
+    # np.save("output/" + cur_time + "/song_" + str(epoch + 1),
+    #         np.packbits(song, axis=-1))
+    np.save("output/" + cur_time + "/song_" + str(epoch + 1), song)
     np.save("output/" + cur_time + "/pc_" + str(epoch + 1), pc)
 
 
@@ -145,10 +147,20 @@ for epoch in tqdm(range(EPOCHS)):
         generated_song = test_step(pc, song).numpy()
         if i == 0:
             if epoch in LOG_POINTS:
-                save_songs(epoch, pc[0].numpy(),
-                           PrepData.to_song(generated_song[0]))
+                # Save a song
+                if np.sum(PrepData.to_song(generated_song[0])) == 0:
+                    tqdm.write("GENERATED SONG WITH NO NOTES - skipping save")
+                else:
+                    tqdm.write("Saving a song! - Epoch: " + str(epoch))
+                    # save_songs(epoch, pc[0].numpy(),
+                    #            PrepData.to_song(generated_song[0]))
+                    save_songs(epoch, pc[0].numpy(), generated_song[0])
             if epoch == EPOCHS - 1:
                 SongDisplay.show(PrepData.to_song(song[0].numpy()))
+                tqdm.write("Number of notes in test song:" +
+                           str(np.sum(PrepData.to_song(generated_song[0]))))
+                tqdm.write("Number of notes in the metric:" +
+                           str(test_num_notes.result().numpy()))
                 SongDisplay.show(PrepData.to_song(generated_song[0]))
     test_logs(epoch + 1)
 
