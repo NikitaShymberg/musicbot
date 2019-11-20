@@ -124,10 +124,10 @@ if __name__ == "__main__":
 
     from Visualization.SongDisplay import SongDisplay
     from train.PrepData import PrepData
-    s = np.unpackbits(np.load("data/temp/Amon Amarth - Beheading Of A King.mid.npy"), axis=-1)
+    s = np.unpackbits(np.load("data/npy/Zelda - Ocarina of Time - Main Theme.mid.npy"), axis=-1)
     # s = s.reshape((16, 96, 96))
-    SongDisplay.show(s[0])
-    SongDisplay.show(PrepData.to_song(s[0]))
-    s1 = PrepData.to_song(s[0])
+    # SongDisplay.show(s[0])
+    # SongDisplay.show(PrepData.to_song(s[1]))
+    s1 = PrepData.to_song(s[1])
     midi = ntm.numpy_to_midi(s1)
     midi.save("data/temp/bak.mid")

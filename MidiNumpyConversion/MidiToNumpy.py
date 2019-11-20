@@ -20,6 +20,7 @@ class MidiToNumpy():
 
     Limitations:
     - This class should only be used for one instrument midi files.
+    - Ignores channel 9 as it usually contains drums.
     - Time signature meta messages must be in the first track.
     - When a note with a pitch of over 96 comes in, it gets transposed
         an octave down.
@@ -105,7 +106,8 @@ class MidiToNumpy():
                 measure_duration = cur_time_signature.numerator * ppq
 
             # Update note
-            if note.type == "note_on" and note.velocity != 0:
+            if note.type == "note_on" and note.velocity != 0 \
+                    and note.channel != 9:
                 tensor_time = self.midi_to_tensor_time(
                     time, ppq, cur_time_signature.numerator)
                 while note.note >= 96:
@@ -133,11 +135,21 @@ class MidiToNumpy():
                 continue
             except OSError as e:
                 print("ERROR opening", file, "Skipping and continuing...",
-                      file=sys. stderr)
+                      file=sys.stderr)
+                print(e, file=sys.stderr)
+                continue
+            except Exception as e:
+                print("ERROR processing", file, "Skipping and continuing...",
+                      file=sys.stderr)
                 print(e, file=sys.stderr)
                 continue
 
-            songs = self.midi_file_to_numpy(midifile)
+            try:
+                songs = self.midi_file_to_numpy(midifile)
+            except (ValueError, TypeError):
+                tqdm.write("Could not load: " + midifile.filename)
+                os.remove(midifile.filename)  # TODO: remove it everywhere dummy
+                continue
 
             # Save every midifile into a separate file to save memory
             # packbits to greatly reduce file size
@@ -145,5 +157,5 @@ class MidiToNumpy():
 
 
 if __name__ == "__main__":
-    data_loader = MidiToNumpy("/home/nikita/Downloads/130000_Pop_Rock_Classical_Videogame_EDM_MIDI_Archive[6_19_15]/Metal_Rock_wolverine-metalmidi.wen.ru_MIDIRip/AmonAmarth", "data/temp/")
+    data_loader = MidiToNumpy("data/midi", "data/npy/")
     data_loader.load_midis()

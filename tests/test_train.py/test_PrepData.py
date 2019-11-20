@@ -27,14 +27,6 @@ class TestPrepData(unittest.TestCase):
         """
         self.pd = PrepData(self.data_path, self.num_songs)
 
-    def test_constructor_songs(self):
-        """
-        Ensures that the constructor creates the self.songs
-        attribute correctly.
-        """
-        self.assertEqual(self.pd.songs.shape,
-                         (self.num_songs, NUM_MEASURES, NUM_TIMES, NUM_NOTES))
-
     def test_to_song_shape(self):
         """
         Ensures that the to_song method reshapes the song correctly.
