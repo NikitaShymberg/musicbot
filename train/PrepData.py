@@ -1,5 +1,7 @@
 """
 This file contains the PrepData class that loads and preprocesses numpy arrays
+TODO: redoc things
+TODO: new tests
 """
 import numpy as np
 import os
@@ -24,9 +26,11 @@ class PrepData():
         songs.
         """
         self.data_path = data_path
-        self.save_path = save_path
+        self.train_save_path = os.path.join(save_path, "train_songs")
+        self.test_save_path = os.path.join(save_path, "test_songs")
         self.num_songs = num_songs
-        self.pc_decomposer = IncrementalPCA(n_components=PCA_DIMENSIONS)
+        self.pc_decomposer = IncrementalPCA(n_components=PCA_DIMENSIONS,
+                                            batch_size=1000)
 
     @staticmethod
     def to_song(song: np.ndarray) -> np.ndarray:
@@ -83,17 +87,30 @@ class PrepData():
         `self.pc_decomposer.partial_fit` for them all.
         """
         song_num = 0
+        song_batch = None
         print("Fitting decomposer...")
         for file in tqdm(os.listdir(self.data_path)):
             if song_num >= self.num_songs:
+                # All necessary songs loaded
                 break
             songs = self.load_npy_file(file)
             if songs.shape[0] + song_num <= self.num_songs:
-                self.pc_decomposer.partial_fit(songs)
+                # Not too many songs in `file`
+                pass
+                # self.pc_decomposer.partial_fit(songs)
             else:
+                # Too many songs in `file`
                 remaining_songs = self.num_songs - song_num
                 songs = songs[:remaining_songs]
-                self.pc_decomposer.partial_fit(songs)
+                # self.pc_decomposer.partial_fit(songs)
+            if song_batch is not None:
+                song_batch = np.concatenate((song_batch, songs))
+            else:
+                song_batch = songs
+            if song_batch.shape[0] >= PCA_DIMENSIONS:
+                # Fit the ipca
+                self.pc_decomposer.partial_fit(song_batch)
+                song_batch = None
             song_num += songs.shape[0]
 
     def serialize_song(self, pc: np.ndarray, song: np.ndarray) -> bytes:
@@ -115,29 +132,40 @@ class PrepData():
     def save_tf_records(self):
         """
         Loads songs from `self.data_path`, gets their principal components
-        and saves them in a TFRecord.
+        and saves them in a TFRecords in `self.train_save_path` and
+        `self.test_save_path`.
+        For each song there is a 20% chance that it gets put into the test set,
+        thus the train/test split won't be an exact 80/20 split.
         Taken from: https://www.tensorflow.org/tutorials/load_data/tfrecord
         """
-        with tf.io.TFRecordWriter(self.save_path) as writer:
-            song_num = 0
-            print("Retrieving principal components...")
-            for file in tqdm(os.listdir(self.data_path)):
-                if song_num >= self.num_songs:
-                    break
-                songs = self.load_npy_file(file)
-                if songs.shape[0] + song_num <= self.num_songs:
-                    pc = self.pc_decomposer.transform(songs)
-                else:
-                    remaining_songs = self.num_songs - song_num
-                    pc = self.pc_decomposer.transform(songs)
-                    songs = songs[:remaining_songs]
-                song_num += songs.shape[0]
-                for i in range(len(songs)):
+        song_num = 0
+        print("Retrieving principal components...")
+        # Train songs
+        for file in tqdm(os.listdir(self.data_path)):
+            if song_num >= self.num_songs:
+                # All necessary songs loaded
+                break
+            songs = self.load_npy_file(file)
+            if songs.shape[0] + song_num <= self.num_songs:
+                # Not too many songs in `file`
+                pc = self.pc_decomposer.transform(songs)
+            else:
+                # Too many songs in `file`
+                remaining_songs = self.num_songs - song_num
+                songs = songs[:remaining_songs]
+                pc = self.pc_decomposer.transform(songs)
+            song_num += songs.shape[0]
+            for i in range(len(songs)):
+                # Write TFRecord
+                save_path = self.train_save_path if np.random.rand() < 0.8 \
+                    else self.test_save_path
+                with tf.io.TFRecordWriter(save_path) as writer:
                     example = self.serialize_song(pc[i], songs[i])
                     writer.write(example)
 
-    def load_data(self, show_variance=False) -> None:
+    def create_pcs(self, show_variance=False) -> None:
         """
+        TODO: redoc
         Loads the data into `self.train_ds` and `self.test_ds`. Each of those
         datasets will contain tuples in the form (x, y) where x is the
         principle component of the song y.
@@ -154,8 +182,26 @@ class PrepData():
 
         # self.create_datasets(pc, self.songs)
 
+    def get_data(self, is_train=False):
+        """
+        Loads the TFRecord from `self.save_path` and creates a Dataset
+        with the contents. Returns a generator that yields touples of
+        (pc, song) values.
+        FIXME: am broken?
+        """
+        load_path = self.train_save_path if is_train else self.test_save_path
+        raw_dataset = tf.data.TFRecordDataset(
+            load_path
+        ).shuffle(self.num_songs).batch(BATCH_SIZE)
+        for rr in raw_dataset:
+            tf_eg = tf.train.Example.FromString(rr.numpy())
+            pc = np.array(tf_eg.features.feature['pc'].float_list.value)
+            song = np.array(tf_eg.features.feature['song'].float_list.value)
+            yield pc, song
+
 
 if __name__ == "__main__":
-    d = PrepData("data/npy/", "data/tfrecords/all_songs", 10)
-    d.load_data(show_variance=True)
-    print("Done!")
+    d = PrepData("data/npy/", "data/tfrecords/", 100)
+    d.create_pcs(show_variance=False)
+    for q in d.get_data():
+        print(q)

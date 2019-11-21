@@ -10,7 +10,7 @@ PPQ = 960  # The pulses per quarter note value to use when writing MIDI files
 
 # Learning constants
 # The number of dimensions to use in the PCA step
-PCA_DIMENSIONS = 2  # TESTING
+PCA_DIMENSIONS = 5  # TESTING
 # PCA_DIMENSIONS = 1000  # Captures ~ 74% variance
 # PCA_DIMENSIONS = 1150  # Captures ~ 80% variance
 # PCA_DIMENSIONS = 1600  # Captures ~ 90% variance
