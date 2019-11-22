@@ -89,20 +89,15 @@ class PrepData():
         song_num = 0
         song_batch = None
         print("Fitting decomposer...")
-        for file in tqdm(os.listdir(self.data_path)):
-            if song_num >= self.num_songs:
-                # All necessary songs loaded
-                break
+        for file_num, file in enumerate(tqdm(os.listdir(self.data_path))):
             songs = self.load_npy_file(file)
             if songs.shape[0] + song_num <= self.num_songs:
                 # Not too many songs in `file`
                 pass
-                # self.pc_decomposer.partial_fit(songs)
             else:
                 # Too many songs in `file`
                 remaining_songs = self.num_songs - song_num
                 songs = songs[:remaining_songs]
-                # self.pc_decomposer.partial_fit(songs)
             if song_batch is not None:
                 song_batch = np.concatenate((song_batch, songs))
             else:
@@ -112,6 +107,10 @@ class PrepData():
                 self.pc_decomposer.partial_fit(song_batch)
                 song_batch = None
             song_num += songs.shape[0]
+            if song_num >= self.num_songs:
+                # All necessary songs loaded
+                self.num_files = file_num + 1
+                break
 
     def serialize_song(self, pc: np.ndarray, song: np.ndarray) -> bytes:
         """
@@ -134,34 +133,44 @@ class PrepData():
         Loads songs from `self.data_path`, gets their principal components
         and saves them in a TFRecords in `self.train_save_path` and
         `self.test_save_path`.
-        For each song there is a 20% chance that it gets put into the test set,
-        thus the train/test split won't be an exact 80/20 split.
         Taken from: https://www.tensorflow.org/tutorials/load_data/tfrecord
+        FIXME: it's overwritten every time
+        TODO: Just write 80% of the files to the train tfrecord...
         """
         song_num = 0
         print("Retrieving principal components...")
-        # Train songs
-        for file in tqdm(os.listdir(self.data_path)):
-            if song_num >= self.num_songs:
-                # All necessary songs loaded
-                break
-            songs = self.load_npy_file(file)
-            if songs.shape[0] + song_num <= self.num_songs:
-                # Not too many songs in `file`
-                pc = self.pc_decomposer.transform(songs)
+        num_train_files = int(self.num_files * 0.8)
+        train_files = os.listdir(self.data_path)[:num_train_files]
+        test_files = os.listdir(self.data_path)[num_train_files:self.num_files]
+        file_paths = (train_files, test_files)
+        for i, file_batch in enumerate(file_paths):
+            if i == 0:
+                # Train data
+                print("Creating train dataset...")
+                save_path = self.train_save_path
             else:
-                # Too many songs in `file`
-                remaining_songs = self.num_songs - song_num
-                songs = songs[:remaining_songs]
-                pc = self.pc_decomposer.transform(songs)
-            song_num += songs.shape[0]
-            for i in range(len(songs)):
-                # Write TFRecord
-                save_path = self.train_save_path if np.random.rand() < 0.8 \
-                    else self.test_save_path
-                with tf.io.TFRecordWriter(save_path) as writer:
-                    example = self.serialize_song(pc[i], songs[i])
-                    writer.write(example)
+                # Test data
+                print("Creating test dataset...")
+                save_path = self.test_save_path
+            with tf.io.TFRecordWriter(save_path) as writer:
+                for file in tqdm(file_batch):
+                    if song_num >= self.num_songs:
+                        # All necessary songs loaded
+                        break
+                    songs = self.load_npy_file(file)
+                    if songs.shape[0] + song_num <= self.num_songs:
+                        # Not too many songs in `file`
+                        pc = self.pc_decomposer.transform(songs)
+                    else:
+                        # Too many songs in `file`
+                        remaining_songs = self.num_songs - song_num
+                        songs = songs[:remaining_songs]
+                        pc = self.pc_decomposer.transform(songs)
+                    song_num += songs.shape[0]
+                    for i in range(len(songs)):
+                        # Write TFRecord
+                        example = self.serialize_song(pc[i], songs[i])
+                        writer.write(example)
 
     def create_pcs(self, show_variance=False) -> None:
         """
@@ -187,12 +196,13 @@ class PrepData():
         Loads the TFRecord from `self.save_path` and creates a Dataset
         with the contents. Returns a generator that yields touples of
         (pc, song) values.
-        FIXME: am broken?
+        FIXME: am broken? try loading all_songs SOME way
+        FIXME: the batching is breaking things...
         """
         load_path = self.train_save_path if is_train else self.test_save_path
         raw_dataset = tf.data.TFRecordDataset(
             load_path
-        ).shuffle(self.num_songs).batch(BATCH_SIZE)
+        ).shuffle(self.num_songs)#.batch(BATCH_SIZE)
         for rr in raw_dataset:
             tf_eg = tf.train.Example.FromString(rr.numpy())
             pc = np.array(tf_eg.features.feature['pc'].float_list.value)
@@ -203,5 +213,12 @@ class PrepData():
 if __name__ == "__main__":
     d = PrepData("data/npy/", "data/tfrecords/", 100)
     d.create_pcs(show_variance=False)
-    for q in d.get_data():
+    num_songs = 0
+    for q in d.get_data(is_train=True):
+        num_songs += 1
         print(q)
+    print("Number of train songs:", num_songs)
+    for q in d.get_data(is_train=False):
+        num_songs += 1
+        print(q)
+    print("Total number of songs:", num_songs)
